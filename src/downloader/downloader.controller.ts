@@ -1,5 +1,6 @@
 import { Controller, Get, Param, Res, Query } from '@nestjs/common';
 import { DownloaderService } from './downloader.service';
+import { VideoQuality } from './dto/download-dto';
 
 @Controller('downloader')
 export class DownloaderController {
@@ -11,7 +12,7 @@ export class DownloaderController {
   }
 
   @Get(':url/download')
-  async downloadVideo(@Param('url') url: string, @Query('quality') quality: string, @Res() res) {
+  async downloadVideo(@Param('url') url: string, @Query('quality') quality: VideoQuality, @Res() res) {
     try {
       const videoBuffer = await this.downloaderService.downloadVideo(url, quality);
       // Definir cabeçalhos apropriados para indicar o tipo de conteúdo e forçar o download
