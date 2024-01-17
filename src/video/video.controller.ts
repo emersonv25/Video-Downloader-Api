@@ -19,7 +19,7 @@ export class VideoController {
       const video = await this.videoService.downloadVideo(dto);
       res.setHeader('Content-Type', video.mimeType);
       res.setHeader('Content-Disposition', `attachment;filename=${video.title}.${video.ext}`);
-      res.setHeader('Content-Length', video.downloadLenght);
+      // res.setHeader('Content-Length', video.downloadLenght);
       if (video.isM3U8) {
         res.send(video.data);
       } else {

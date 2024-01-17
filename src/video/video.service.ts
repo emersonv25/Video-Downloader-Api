@@ -3,6 +3,8 @@ import axios from 'axios';
 import { DownloadDto, DownloadResponseDto, StreamResponseDto } from 'src/video/dto/download-dto';
 import youtubeDlExec, { Payload } from 'youtube-dl-exec';
 import * as fs from 'fs';
+import { fromBuffer } from 'file-type';
+import { InfoVideoDto } from './dto/info-dto';
 
 @Injectable()
 export class VideoService {
@@ -13,14 +15,31 @@ export class VideoService {
   }
   async getVideoInfo(url: string) {
     try {
-      const info = await youtubeDlExec(url, {
+      const payload = await youtubeDlExec(url, {
         dumpSingleJson: true,
         noCheckCertificates: true,
         noWarnings: true,
         preferFreeFormats: true,
+        format: 'best',
       });
 
-      return info;
+      if (!payload) throw Error('Vídeo não encontrado');
+
+      let formats = payload.formats.filter((f) => f.protocol !== 'mhtml');
+
+      if (payload.extractor.includes('youtube')) {
+        formats = formats.filter((f) => f.format_id == payload.format_id);
+      }
+
+      const result = new InfoVideoDto({
+        url: url,
+        title: payload.title,
+        thumbnail: payload.thumbnail,
+        duration: payload.duration_string,
+        formats: formats,
+      });
+
+      return result;
     } catch (error) {
       throw new Error(`Erro ao obter informações do vídeo: ${error.message}`);
     }
@@ -32,29 +51,47 @@ export class VideoService {
         noCheckCertificates: true,
         noWarnings: true,
         preferFreeFormats: true,
-        format: dto.quality,
+        format: dto.quality + '[protocol^=http]',
         dumpSingleJson: true,
       });
-      if (payload.protocol == 'm3u8_native') {
-        const data = await this.downloadFromM3u8((payload as any).url);
+
+      let ext: string = payload.ext;
+      let mimetype: string = `${payload._type}/${payload.ext}`;
+
+      if (payload.protocol == 'm3u8_native' || payload.resolution == 'audio only') {
+        const data = await this.downloadVideoOutput(dto.url, dto.quality);
+
+        try {
+          const fileTypeResult = await fromBuffer(data);
+          ext = fileTypeResult?.ext || ext;
+          mimetype = fileTypeResult?.mime || mimetype;
+        } catch {}
+
         const result = new DownloadResponseDto({
           data: data,
-          mimeType: 'video/mp4',
-          ext: 'mp4',
+          mimeType: mimetype,
+          ext: ext,
           isM3U8: true,
           downloadLenght: data.length.toString(),
-          title: payload.title,
+          title: this.sanitizeFileName(payload.title),
         });
         return result;
       } else {
         const streamResult = await this.downloadStremUrl((payload as any).url);
+
+        // try {
+        //   const fileTypeResult = await fromStream(streamResult.data);
+        //   ext = fileTypeResult?.ext || ext;
+        //   mimetype = fileTypeResult?.mime || mimetype;
+        // } catch {}
+
         const result = new DownloadResponseDto({
           data: streamResult.data,
-          mimeType: 'video/mp4',
-          ext: payload.ext,
+          mimeType: mimetype,
+          ext: ext,
           isM3U8: false,
           downloadLenght: streamResult.length,
-          title: payload.title,
+          title: this.sanitizeFileName(payload.title),
         });
         return result;
       }
@@ -73,6 +110,25 @@ export class VideoService {
     } catch (error) {
       throw new Error(`Erro ao baixar o vídeo do URL: ${error.message}`);
     }
+  }
+  private async downloadVideoOutput(url: string, format: string): Promise<Buffer> {
+    const filePath = './cache/video.mp4';
+
+    await youtubeDlExec(url, {
+      noCheckCertificates: true,
+      noWarnings: true,
+      preferFreeFormats: true,
+      format: format,
+      output: filePath,
+    });
+
+    // Agora que o vídeo foi baixado para o arquivo, você pode lê-lo em um Buffer
+    const videoBuffer = fs.readFileSync(filePath);
+
+    // Exclua o arquivo local
+    fs.unlinkSync(filePath);
+
+    return videoBuffer;
   }
   private async downloadFromUrl(url: string): Promise<{ buffer: Buffer }> {
     try {
@@ -114,25 +170,14 @@ export class VideoService {
       console.error('Nenhum segmento encontrado no arquivo m3u8.');
     }
   }
-  private async downloadVideoOutput(url: string, format: string): Promise<Buffer> {
-    // Use uma biblioteca que permite download para um arquivo local
-    const filePath = './cache/video.mp4';
+  public sanitizeFileName(fileName: string): string {
+    // Substitua os caracteres especiais por um caractere vazio
+    const sanitizedFileName = fileName.replace(/[^\w\dáéíóúâêîôûàèìòùäëïöüãõñç\s._-]/gi, '');
 
-    // youtubeDlExec retorna uma Promise, então você pode esperar a conclusão do download
-    await youtubeDlExec(url, {
-      noCheckCertificates: true,
-      noWarnings: true,
-      preferFreeFormats: true,
-      format: format,
-      output: filePath, // Especifica o caminho do arquivo de saída
-    });
+    // Limita o tamanho do nome do arquivo, se necessário
+    const maxLength = 255; // Defina o comprimento máximo desejado
+    const truncatedFileName = sanitizedFileName.substring(0, maxLength);
 
-    // Agora que o vídeo foi baixado para o arquivo, você pode lê-lo em um Buffer
-    const videoBuffer = fs.readFileSync(filePath);
-
-    // Opcional: Exclua o arquivo local, se não precisar mais dele
-    fs.unlinkSync(filePath);
-
-    return videoBuffer;
+    return truncatedFileName;
   }
 }
