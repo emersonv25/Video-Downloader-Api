@@ -21,6 +21,10 @@ export class DownloadResponseDto {
     Object.assign(this, partial);
   }
 }
+export class InfoDto {
+  @ApiProperty({ example: 'https://example.com/video.mp4', description: 'URL of the video to be downloaded' })
+  url: string;
+}
 export class DownloadDto {
   @ApiProperty({ example: 'https://example.com/video.mp4', description: 'URL of the video to be downloaded' })
   url: string;

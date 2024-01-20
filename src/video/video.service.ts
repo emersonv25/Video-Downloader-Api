@@ -29,7 +29,14 @@ export class VideoService {
 
       if (payload.extractor.includes('youtube')) {
         formats = formats.filter((f) => f.format_id == payload.format_id);
+      } else {
+        const https = formats.filter((f) => f.protocol === 'https');
+        if (https.filter((f) => f.height >= 720).length > 0) {
+          formats = https;
+        }
       }
+
+      formats = formats.sort((a, b) => b.height - a.height);
 
       const result = new InfoVideoDto({
         url: url,
@@ -77,7 +84,7 @@ export class VideoService {
         });
         return result;
       } else {
-        const streamResult = await this.downloadStremUrl((payload as any).url);
+        const streamResult = await this.downloadStraemUrl((payload as any).url);
 
         // try {
         //   const fileTypeResult = await fromStream(streamResult.data);
@@ -99,7 +106,7 @@ export class VideoService {
       throw new Error(`Erro ao baixar o vídeo: ${error.message}`);
     }
   }
-  private async downloadStremUrl(url: string): Promise<StreamResponseDto> {
+  private async downloadStraemUrl(url: string): Promise<StreamResponseDto> {
     try {
       const response = await axios.get(url, { responseType: 'stream' });
       const result: StreamResponseDto = {
