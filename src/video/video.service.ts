@@ -25,7 +25,7 @@ export class VideoService {
 
       if (!payload) throw Error('Vídeo não encontrado');
 
-      let formats = payload.formats.filter((f) => f.protocol !== 'mhtml');
+      let formats = payload.formats.filter((f) => f.protocol == 'https' || f.protocol == 'm3u8_native');
 
       if (payload.extractor.includes('youtube')) {
         formats = formats.filter((f) => f.format_id == payload.format_id);
@@ -58,7 +58,8 @@ export class VideoService {
         noCheckCertificates: true,
         noWarnings: true,
         preferFreeFormats: true,
-        format: dto.quality + '[protocol^=http]',
+        // format: dto.quality + '[protocol^=http]',
+        format: dto.format,
         dumpSingleJson: true,
       });
 
@@ -66,7 +67,7 @@ export class VideoService {
       let mimetype: string = `${payload._type}/${payload.ext}`;
 
       if (payload.protocol == 'm3u8_native' || payload.resolution == 'audio only') {
-        const data = await this.downloadVideoOutput(dto.url, dto.quality);
+        const data = await this.downloadVideoOutput(dto.url, dto.format);
 
         try {
           const fileTypeResult = await fromBuffer(data);

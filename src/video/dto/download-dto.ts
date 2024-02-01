@@ -30,11 +30,10 @@ export class DownloadDto {
   url: string;
 
   @ApiProperty({
-    enum: VideoQuality,
-    example: VideoQuality.BEST,
+    example: 'best',
     description: 'Quality of the video download (worst, best, bestaudio)',
   })
-  quality: VideoQuality;
+  format: string;
 }
 
 export class StreamResponseDto {
