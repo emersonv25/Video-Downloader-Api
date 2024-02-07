@@ -25,17 +25,17 @@ export class VideoService {
 
       if (!payload) throw Error('Vídeo não encontrado');
 
-      let formats = payload.formats.filter((f) => f.protocol == 'https' || f.protocol == 'm3u8_native');
+      // let formats = payload.formats.filter((f) => f.protocol == 'https' || f.protocol == 'm3u8_native');
 
-      if (payload.extractor.includes('youtube')) {
-        formats = formats.filter((f) => f.format_id == payload.format_id);
-      } else {
-        const https = formats.filter((f) => f.protocol === 'https');
-        if (https.filter((f) => f.height >= 720).length > 0) {
-          formats = https;
-        }
-      }
-
+      // if (payload.extractor.includes('youtube')) {
+      //   formats = formats.filter((f) => f.format_id == payload.format_id);
+      // } else {
+      //   const https = formats.filter((f) => f.protocol === 'https');
+      //   if (https.filter((f) => f.height >= 720).length > 0) {
+      //     formats = https;
+      //   }
+      // }
+      let formats = payload.formats.filter((f) => f.protocol == 'https');
       formats = formats.sort((a, b) => b.height - a.height);
 
       const result = new InfoVideoDto({
