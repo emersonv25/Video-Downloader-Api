@@ -63,7 +63,7 @@ export class VideoService {
       let ext: string = payload.ext;
       let mimetype: string = `${payload._type}/${payload.ext}`;
 
-      if (payload.protocol == 'm3u8_native' || payload.resolution == 'audio only') {
+      if (payload.protocol == 'm3u8_native') {
         const data = await this.downloadVideoOutput(dto.url, dto.format, payload.ext);
 
         try {
