@@ -26,16 +26,6 @@ export class InfoDto {
   url: string;
 }
 export class DownloadDto {
-  @ApiProperty({ example: 'https://example.com/video.mp4', description: 'URL of the video to be downloaded' })
-  url: string;
-
-  @ApiProperty({
-    example: 'best',
-    description: 'Quality of the video download (worst, best, bestaudio)',
-  })
-  format: string;
-}
-export class DownloadByPayloadDto {
   url: string;
   format: string;
   ext: string;

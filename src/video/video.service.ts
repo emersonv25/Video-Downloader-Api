@@ -1,7 +1,7 @@
 import { HttpException, Injectable } from '@nestjs/common';
 import axios from 'axios';
-import { DownloadByPayloadDto, DownloadDto, DownloadResponseDto, StreamResponseDto } from 'src/video/dto/download-dto';
-import youtubeDlExec, { Payload } from 'youtube-dl-exec';
+import { DownloadDto, DownloadResponseDto, StreamResponseDto } from 'src/video/dto/download-dto';
+import youtubeDlExec from 'youtube-dl-exec';
 import * as fs from 'fs';
 import { fromBuffer } from 'file-type';
 import { InfoVideoDto } from './dto/info-dto';
@@ -20,19 +20,19 @@ export class VideoService {
 
     if (!payload) throw new HttpException('Vídeo não encontrado', 404);
 
-    // let formats = payload.formats.filter((f) => f.protocol == 'https' || f.protocol == 'm3u8_native');
+    if (payload._type === 'playlist') {
+      throw new HttpException('Playlists ainda não são suportadas', 400);
+    }
 
-    // if (payload.extractor.includes('youtube')) {
-    //   formats = formats.filter((f) => f.format_id == payload.format_id);
-    // } else {
-    //   const https = formats.filter((f) => f.protocol === 'https');
-    //   if (https.filter((f) => f.height >= 720).length > 0) {
-    //     formats = https;
-    //   }
-    // }
-    let formats = payload.formats.filter((f) => f.protocol == 'https');
+    let formats;
+    if (payload.formats) {
+      formats = payload.formats.filter((f) => f.protocol == 'https');
+    }
 
     // if (formats.length == 0) formats = payload.formats.filter((f) => f.protocol == 'm3u8_native');
+    if (!formats) {
+      throw new HttpException('Video não suportado', 400);
+    }
 
     formats = formats.sort((a, b) => b.height - a.height);
 
@@ -42,69 +42,13 @@ export class VideoService {
       url: url,
       title: payload.title,
       thumbnail: payload.thumbnail,
-      duration: payload.duration_string,
+      duration: this.secondsToHMS(payload.duration),
       formats: formats,
     });
 
     return result;
   }
   async downloadVideo(dto: DownloadDto): Promise<DownloadResponseDto> {
-    try {
-      // Obter a URL do vídeo usando youtube-dl
-      const payload: Payload = await youtubeDlExec(dto.url, {
-        noCheckCertificates: true,
-        noWarnings: true,
-        preferFreeFormats: true,
-        // format: dto.quality + '[protocol^=http]',
-        format: dto.format,
-        dumpSingleJson: true,
-      });
-
-      let ext: string = payload.ext;
-      let mimetype: string = `${payload._type}/${payload.ext}`;
-
-      if (payload.protocol == 'm3u8_native') {
-        const data = await this.downloadVideoOutput(dto.url, dto.format, payload.ext);
-
-        try {
-          const fileTypeResult = await fromBuffer(data);
-          ext = fileTypeResult?.ext || ext;
-          mimetype = fileTypeResult?.mime || mimetype;
-        } catch {}
-
-        const result = new DownloadResponseDto({
-          data: data,
-          mimeType: mimetype,
-          ext: ext,
-          isM3U8: true,
-          downloadLenght: data.length.toString(),
-          title: this.sanitizeFileName(payload.title),
-        });
-        return result;
-      } else {
-        const streamResult = await this.downloadStraemUrl((payload as any).url);
-
-        // try {
-        //   const fileTypeResult = await fromStream(streamResult.data);
-        //   ext = fileTypeResult?.ext || ext;
-        //   mimetype = fileTypeResult?.mime || mimetype;
-        // } catch {}
-
-        const result = new DownloadResponseDto({
-          data: streamResult.data,
-          mimeType: mimetype,
-          ext: ext,
-          isM3U8: false,
-          downloadLenght: streamResult.length,
-          title: this.sanitizeFileName(payload.title),
-        });
-        return result;
-      }
-    } catch (error) {
-      throw new Error(`Erro ao baixar o vídeo: ${error.message}`);
-    }
-  }
-  async downloadVideoByPayload(dto: DownloadByPayloadDto): Promise<DownloadResponseDto> {
     try {
       let ext: string = dto.ext;
       let mimetype: string = `${dto.type}/${dto.ext}`;
@@ -236,5 +180,21 @@ export class VideoService {
     const truncatedFileName = sanitizedFileName.substring(0, maxLength);
 
     return truncatedFileName;
+  }
+  public secondsToHMS(seconds): string {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+
+    if (hours > 0) {
+      const formattedHours = String(hours).padStart(2, '0');
+      const formattedMinutes = String(minutes).padStart(2, '0');
+      const formattedSeconds = String(remainingSeconds).padStart(2, '0');
+      return `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
+    } else {
+      const formattedMinutes = String(minutes).padStart(2, '0');
+      const formattedSeconds = String(remainingSeconds).padStart(2, '0');
+      return `${formattedMinutes}:${formattedSeconds}`;
+    }
   }
 }
