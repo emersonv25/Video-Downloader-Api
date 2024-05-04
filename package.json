@@ -1,5 +1,5 @@
 {
-  "name": "save-video-api",
+  "name": "videos-save-api",
   "version": "0.0.1",
   "description": "",
   "author": "",
@@ -28,7 +28,7 @@
     "axios": "^1.6.5",
     "file-type": "16.5.1 ",
     "rxjs": "^7.8.1",
-    "youtube-dl-exec": "^2.5.5"
+    "youtube-dl-exec": "^3.0.1"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.0.0",

@@ -35,6 +35,15 @@ export class DownloadDto {
   })
   format: string;
 }
+export class DownloadByPayloadDto {
+  url: string;
+  format: string;
+  ext: string;
+  type: string;
+  protocol: string;
+  resolution: string;
+  title: string;
+}
 
 export class StreamResponseDto {
   data: any;
