@@ -16,8 +16,6 @@ export class VideoService {
       noCheckCertificates: true,
       noWarnings: true,
       preferFreeFormats: true,
-      username: process.env.YT_USERNAME,
-      password: process.env.YT_PASSWORD,
     });
 
     if (!payload) throw new HttpException('Vídeo não encontrado', 404);
@@ -120,8 +118,6 @@ export class VideoService {
       format: format,
       output: filePath,
       keepVideo: true,
-      username: process.env.YT_USERNAME,
-      password: process.env.YT_PASSWORD,
     });
 
     // Agora que o vídeo foi baixado para o arquivo, você pode lê-lo em um Buffer
